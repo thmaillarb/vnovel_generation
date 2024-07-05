@@ -12,8 +12,7 @@ The questions should be in the `questions.yaml`. Its syntax should be:
 
 ```yaml
 situations:
-  - :
-    question: "The 1st question that should be asked in the visual novel"
+  - question: "The 1st question that should be asked in the visual novel"
     answers:
       - "Answer 0"
       - "Answer 1"
@@ -21,8 +20,7 @@ situations:
       - "Answer n"
     correct_answer: 0 # The index of the correct answer, starting with 0.
   # ...
-  - :
-    question: "The n-th question that should be asked in the visual novel"
+  - question: "The n-th question that should be asked in the visual novel"
     answers:
       - "Answer 0"
       - "Answer 1"

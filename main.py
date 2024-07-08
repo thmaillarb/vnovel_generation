@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import yaml
+from ollama import Client
+
 
 class Situation:
     """
     Used to represent a question and its answers, generally obtained from the YAML file.
     """
+
     def __init__(self, question: str, correct_answer_index: int, answers: tuple):
         """
         Constructor of the Situation class.
@@ -42,7 +45,6 @@ class Situation:
         """str: the text of the correct answer"""
         return self._answers[self._correct_answer_index]
 
-
 if __name__ == '__main__':
     # reading questions
     with open("questions.yaml", "r") as file:
@@ -54,7 +56,38 @@ if __name__ == '__main__':
         answers = tuple(situation["answers"])
         correct_answer = situation["correct_answer"]
         obj = Situation(question, correct_answer, answers)
-        print(obj.correct_answer)
         situations.append(obj)
+
+    ollama_client = Client(host="http://localhost:11434", timeout=20 * 60)  # 20 minutes of timeout
+
+    # TODO Improvement (?), use .format if it doesn't recreate the whole string every time
+    for situation in situations:
+        prompt = f"Create a story based on this question: {situation.question}. The possible answers are:\n"
+        for i in range(len(situation.answers)):
+            prompt += f"{i}. {situation.answers[i]}\n"
+
+        prompt += f"The correct answer is {situation.correct_answer} and is the only one to lead to a good ending. " \
+                  f"The other answers are wrong answers and must always lead to a bad ending, with severe " \
+                  f"consequences for all the characters involved. Write the story with an introduction, leading to " \
+                  f"the choice to make. You have to write the different endings each option lead to. Do not reword " \
+                  f"the choices. The story must be written in a first person point of view. The format should be this " \
+                  f"(replace each part of the format by the corresponding element:\n" \
+                  "Introduction\n" \
+                  "========================\n"
+
+        for i in range(len(situation.answers)):
+            prompt += f"Answer {i}: {situation.answers[i]}\n" \
+                      f"Ending with answer {i}\n" \
+                      "-----------------------"
+
+        response = ollama_client.chat(
+            model="gemma2:9b",
+            messages=[
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ]
+        )
 
 

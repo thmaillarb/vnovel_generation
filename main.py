@@ -12,6 +12,7 @@ from time import time
 def no_blank_line(text):
     lines = text.split("\n")
     non_empty_lines = [line for line in lines if line.strip() != ""]
+    ret = "\n".join(non_empty_lines)
     return "\n".join(non_empty_lines)
 
 class Situation:
@@ -184,7 +185,13 @@ if __name__ == '__main__':
                 print(response["message"]["content"])
                 # Generating transitions
                 transitions = list()
+                break
+            except Exception as e:
+                print(traceback.print_exc(file=sys.stderr))
+                print("Retrying...", file=sys.stderr)
 
+        while True:
+            try:
                 for i in range(len(situations) - 1):
                     # Compiling the correct path of the 1st story.
                     prompt = "Write a transition between these two texts. They are part of the same story. The narrator is the " \
@@ -215,7 +222,12 @@ if __name__ == '__main__':
                     # so we make sure to only get the transition (which always took one line when we tested it)
                     transition = response["message"]["content"].splitlines()[-1]
                     transitions.append(transition)
-
+                break
+            except Exception as e:
+                print(traceback.print_exc(file=sys.stderr))
+                print("Retrying...", file=sys.stderr)
+        while True:
+            try:
                 prompt = f"List all the characters. Only give the names, don't give any context. Make an unordered list, " \
                          f"with each element starting with a * symbol. Here are the stories:\n\n"
                 for situation in situations:

@@ -338,7 +338,7 @@ if __name__ == '__main__':
                             f.write(talk(line, characters_lowercase))
                         f.write(f"    jump story{i}\n")
                 else:
-                    f.write("    jump menu\n")
+                    f.write("    jump main_menu\n")
 
         f.write(
             "label ending:\n"

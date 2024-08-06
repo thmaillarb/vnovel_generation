@@ -8,6 +8,7 @@ from ollama import Client
 import re
 import zipfile
 from time import time
+import os
 
 
 def no_blank_line(text):
@@ -292,8 +293,7 @@ if __name__ == '__main__':
 
     print("Generating the script")
 
-    with open(f"{game_name}/base/game/script.rpy", "w", encoding="utf8") as f:
-        f = open(f"{game_name}/base/game/script.rpy", "w")
+    with open(f"{game_name}/base/game/script-tmp.rpy", "w", encoding="utf8") as f:
         # Registering characters
         f.write("define me = Character('Me')\n")
         for i in range(len(characters)):
@@ -341,3 +341,8 @@ if __name__ == '__main__':
             "label ending\n"
             '    "Thanks for playing!"'
         )
+        f.flush()
+        os.fsync(f.fileno())
+
+    os.system(f'powershell -command "Get-Content .\\{game_name}\\base\\game\\script-tmp.rpy | Set-Content -Encoding utf8 .\\{game_name}\\base\\game\\script.rpy"')
+    os.remove(f"{game_name}/base/game/script-tmp.rpy")

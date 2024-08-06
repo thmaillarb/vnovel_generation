@@ -24,6 +24,7 @@ def talk(line, characters_lowercase):
     if talker.lower() in characters_lowercase:
         talker_index = characters_lowercase.index(talker.lower())
         spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
+        spoken_line = spoken_line.replace("\"", "\\\"")
         return f'    c{talker_index} "{spoken_line}"\n'
     elif talker.lower() in ["me", "you"]:
         spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')

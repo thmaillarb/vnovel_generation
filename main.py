@@ -302,6 +302,8 @@ if __name__ == '__main__':
         for i in range(len(characters)):
             f.write(f"define c{i} = Character('{characters[i]}')\n")
 
+        f.write("label start:\n")
+        f.write("    jump story0\n")
         for i in range(len(situations)):
             print(f"Writing situation {i}")
             f.write(f"label story{i}:\n")

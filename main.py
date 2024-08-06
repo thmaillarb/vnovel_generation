@@ -336,7 +336,7 @@ if __name__ == '__main__':
                     if i + 1 == len(situations):
                         f.write("    jump ending\n")
                     else:
-                        for line in transitions[i]:
+                        for line in transitions[i].split("\n"):
                             f.write(talk(line, characters_lowercase))
                         f.write(f"    jump story{i}\n")
                 else:

@@ -116,6 +116,7 @@ class Situation:
         """
         story = re.sub(r"(\*\*|##)", "", story)
         self._introduction = re.search(r"=*(.+?)\n+?(--+|==+|Answer [0-9]+)", story, flags=re.DOTALL).group(1)
+        self._introduction = self._introduction.replace(".",".\n")
         self._introduction = no_blank_line(self._introduction)
 
         if self._introduction is None:
@@ -125,6 +126,7 @@ class Situation:
         for match in re.finditer(r"(Ending with answer [0-9]+:?\n)?--+\n(.+?)(--+|pini|Answer [0-9])", story,
                                  flags=re.DOTALL):
             ending = match.group(2)
+            ending = ending.replace(".",".\n")
             ending = no_blank_line(ending)
             if ending is None:
                 self._introduction = None
@@ -151,6 +153,8 @@ if __name__ == '__main__':
         situations.append(obj)
 
     ollama_client = Client(host="http://localhost:11434", timeout=20 * 60)  # 20 minutes of timeout
+
+    transitions = list()
 
     # Generating a story for each situation
     # TODO Improvement (?), use .format if it doesn't recreate the whole string every time
@@ -194,7 +198,7 @@ if __name__ == '__main__':
                 print(response["message"]["content"])
                 prompt = f"Rewrite the story. Don't change anything except when characters speak. You have to reformat the " \
                          f"dialogues like this: CHARACTER: dialogue.\n" \
-                         f"Each line must end with a line break. The lines of dialogue the protagonist say must be " \
+                         f"Each sentence must end with a line break. The lines of dialogue the protagonist say must be " \
                          f"written with 'YOU' in front of them. Don't write stage directions in the dialogues. Make " \
                          f"sure to completely write all the endings. You still have to write the parts of the story " \
                          f"that are not dialogue. Here is the story:\n" \
@@ -250,6 +254,8 @@ if __name__ == '__main__':
                 response["message"]["content"] = response["message"]["content"].encode("utf-8", "ignore").decode(
                     "utf-8")
                 transition = response["message"]["content"].splitlines()[-1]
+                transition = transition.replace(".", ".\n")
+                transition = no_blank_line(transition)
                 transitions.append(transition)
 
             characters = list()
@@ -338,13 +344,17 @@ if __name__ == '__main__':
                     else:
                         for line in transitions[i].split("\n"):
                             f.write(talk(line, characters_lowercase))
-                        f.write(f"    jump story{i}\n")
+                        f.write(f"    jump story{i+1}\n")
                 else:
                     f.write("    jump main_menu\n")
 
         f.write(
             "label ending:\n"
-            '    "Thanks for playing!"'
+            '    "Thanks for playing!"\n'
+        )
+        f.write(
+            "label main_menu:\n"
+            "    return\n"
         )
         f.flush()
         os.fsync(f.fileno())

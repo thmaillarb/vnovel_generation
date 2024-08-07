@@ -20,7 +20,7 @@ def no_blank_line(text):
 
 def talk(line, characters_lowercase):
     line = line.replace("\"", "\\\"")
-    return f'    "{line}"'
+    return f'    "{line}"\n'
 
 
 class Situation:

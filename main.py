@@ -250,11 +250,11 @@ if __name__ == '__main__':
             for line in situations[i].introduction.split("\n"):
                 f.write(talk(line, None))
 
-            f.write("menu:\n")
+            f.write("    menu:\n")
             for j in range(len(situations[i].answers)):
                 answer = situations[i].answers[j]
-                f.write(f'    "{answer}":\n')
-                f.write(f'        jump s{i}a{j}\n')
+                f.write(f'        "{answer}":\n')
+                f.write(f'            jump s{i}a{j}\n')
 
             for j in range(len(situations[i].endings)):
                 f.write(f"label s{i}a{j}:\n")

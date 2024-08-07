@@ -19,21 +19,8 @@ def no_blank_line(text):
 
 
 def talk(line, characters_lowercase):
-    dialogue = line.partition(":")
-    talker = dialogue[0].strip()
-    if talker.lower() in characters_lowercase:
-        talker_index = characters_lowercase.index(talker.lower())
-        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    c{talker_index} "{spoken_line}"\n'
-    elif talker.lower() in ["me", "you"]:
-        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    me "{spoken_line}"\n'
-    else:
-        spoken_line = bytes(dialogue[0], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    "{spoken_line}"\n'
+    line = line.replace("\"", "\\\"")
+    return f'    "{line}"'
 
 
 class Situation:
@@ -196,31 +183,7 @@ if __name__ == '__main__':
                     }
                 )
                 print(response["message"]["content"])
-                prompt = f"Rewrite the story. Don't change anything except when characters speak. You have to reformat the " \
-                         f"dialogues like this: CHARACTER: dialogue.\n" \
-                         f"Each sentence must end with a line break. The lines of dialogue the protagonist say must be " \
-                         f"written with 'YOU' in front of them. Don't write stage directions in the dialogues. Make " \
-                         f"sure to completely write all the endings. You still have to write the parts of the story " \
-                         f"that are not dialogue. Here is the story:\n" \
-                         f"{response['message']['content']}"
-                response = ollama_client.chat(
-                    model="gemma2:9b",
-                    messages=[
-                        {
-                            'role': 'user',
-                            'content': prompt
-                        }
-                    ],
-                    options={
-                        "temperature": 0.15,
-                        "num_ctx": 8192
-                    }
-                )
-                response["message"]["content"] = response["message"]["content"].encode("utf-8", "ignore").decode(
-                    "utf-8")
-                situation.parse(
-                    response["message"]["content"] + "\npini")  # Quick and dirty bugfix to recognise the last answer
-                print(response["message"]["content"])
+
             # Generating transitions
             transitions = list()
             for i in range(len(situations) - 1):
@@ -257,33 +220,6 @@ if __name__ == '__main__':
                 transition = transition.replace(".", ".\n")
                 transition = no_blank_line(transition)
                 transitions.append(transition)
-
-            characters = list()
-            prompt = f"List all the characters. Only give the names, don't give any context. Make an unordered list, " \
-                     f"with each element starting with a * symbol. Here are the stories:\n\n"
-            for situation in situations:
-                prompt += situation.good_story + "\n\n"
-
-            response = ollama_client.chat(
-                model="llama2:7b",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                options={
-                    "temperature": 0
-                }
-            )
-
-            for line in response["message"]["content"].split("\n"):
-                if line.startswith("*") or "you" not in line.lower() or "me" not in line.lower():
-                    characters.append(line[2:])
-
-            characters_lowercase = [x.lower() for x in characters]
-
-            print(response["message"]["content"])
             break
         except Exception as e:
             print(traceback.print_exc(file=sys.stderr))
@@ -303,10 +239,6 @@ if __name__ == '__main__':
     print("Generating the script")
 
     with open(f"{game_name}/base/game/script-tmp.rpy", "w", encoding="utf8") as f:
-        # Registering characters
-        f.write("define me = Character('Me')\n")
-        for i in range(len(characters)):
-            f.write(f'define c{i} = Character("{characters[i]}")\n')
 
         f.write("label start:\n")
         f.write("    jump story0\n")
@@ -314,19 +246,8 @@ if __name__ == '__main__':
             print(f"Writing situation {i}")
             f.write(f"label story{i}:\n")
             for line in situations[i].introduction.split("\n"):
-                f.write(talk(line, characters_lowercase))
-                # dialogue = line.partition(":")
-                # talker = dialogue[0].strip()
-                # if talker.lower() in characters_lowercase:
-                #     talker_index = characters_lowercase.index(talker.lower())
-                #     spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
-                #     f.write(f'    c{talker_index} "{spoken_line}"\n')
-                # elif talker.lower() in ["me","you"]:
-                #     spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
-                #     f.write(f'    me "{spoken_line}"\n')
-                # else:
-                #     spoken_line = dialogue[0].encode("utf-8", "ignore").decode("utf-8")
-                #     f.write(f'    "{spoken_line}"\n')
+                f.write(talk(line, None))
+
             f.write("menu:\n")
             for j in range(len(situations[i].answers)):
                 answer = situations[i].answers[j]
@@ -336,14 +257,14 @@ if __name__ == '__main__':
             for j in range(len(situations[i].endings)):
                 f.write(f"label s{i}a{j}:\n")
                 for line in situations[i].endings[j].split("\n"):
-                    f.write(talk(line, characters_lowercase))
+                    f.write(talk(line, None))
 
                 if j == situations[i].correct_answer_index:
                     if i + 1 == len(situations):
                         f.write("    jump ending\n")
                     else:
                         for line in transitions[i].split("\n"):
-                            f.write(talk(line, characters_lowercase))
+                            f.write(talk(line, None))
                         f.write(f"    jump story{i+1}\n")
                 else:
                     f.write("    jump main_menu\n")

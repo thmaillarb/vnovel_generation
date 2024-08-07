@@ -183,6 +183,8 @@ if __name__ == '__main__':
                     }
                 )
                 print(response["message"]["content"])
+                situation.parse(
+                    response["message"]["content"] + "\npini")  # Quick and dirty bugfix to recognise the last answer
 
             # Generating transitions
             transitions = list()

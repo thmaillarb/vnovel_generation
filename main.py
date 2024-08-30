@@ -334,12 +334,13 @@ if __name__ == '__main__':
             transitions = list()
             print("Generating transitions")
             for i in range(len(situations) - 1):
+                str_intro = '\n'.join([str(x) for x in situations[i + 1].introduction])
                 # Compiling the correct path of the 1st story.
                 prompt = "Write a transition between these two texts. They are part of the same story. The narrator is the " \
                          "same person. Write only the transition of the story. The transition must feel natural. The first " \
                          "text describes events happening before those of the second text.\n" \
                          f"Here is the first text: '{situations[i].good_story}'\n\n" \
-                         f"Here is the second text: '{str(situations[i + 1].introduction)}'"
+                         f"Here is the second text: '{str_intro}'"
 
                 # Using llama3 because it's better at actually giving a chronological transition.
                 response = ollama_client.chat(

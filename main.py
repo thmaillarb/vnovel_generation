@@ -220,14 +220,6 @@ class Situation:
             self._endings.append(ending)
 
 if __name__ == '__main__':
-    print("Initializing Stable Diffusion 3 Pipeline...")
-    # initializing Stable Diffusion 3
-    pipe = StableDiffusion3Pipeline.from_pretrained(
-        "stabilityai/stable-diffusion-3-medium-diffusers",
-        torch_dtype=torch.float16
-    )
-    pipe = pipe.to("cuda")
-
     # reading questions
     with open("questions.yaml", "r") as file:
         questions_yaml = yaml.safe_load(file)
@@ -243,6 +235,7 @@ if __name__ == '__main__':
     ollama_client = Client(host="http://localhost:11434", timeout=20 * 60)  # 20 minutes of timeout
 
     transitions = list()
+    background_prompts = list()
 
     # Generating a story for each situation
     # TODO Improvement (?), use .format if it doesn't recreate the whole string every time
@@ -293,8 +286,6 @@ if __name__ == '__main__':
                 print(response["message"]["content"])
                 situation.parse(response["message"]["content"])
 
-                print("Generating the image")
-
                 str_intro = "\n".join([str(x) for x in situation.introduction])
 
                 prompt = f"Describe where this scene takes place in 70 keywords or less. Don't write sentences, " \
@@ -305,7 +296,8 @@ if __name__ == '__main__':
                     messages=[
                         {
                             "role": "system",
-                            "content": "Respond with 70 words or less. Don't talk about characters of people."
+                            "content": "Respond with 70 words or less. You are not allowed to write keywords that "
+                                       "refer to people, humans, or body."
                         },
                         {
                             "role": "user",
@@ -318,17 +310,9 @@ if __name__ == '__main__':
                     }
                 )
                 print(response["message"]["content"])
+                background_prompts.append(response["message"]["content"])
 
-                image = pipe(
-                    prompt=response["message"]["content"],
-                    negative_prompt="humans, text, people, person, student, face, body",
-                    num_inference_steps=100,
-                    height=576,
-                    width=1024,
-                    guidance_scale=15
-                ).images[0]
 
-                image.save(f"bg{situations.index(situation)}.png")
 
             # Generating transitions
             transitions = list()
@@ -368,6 +352,28 @@ if __name__ == '__main__':
         except Exception as e:
             print(traceback.print_exc(file=sys.stderr))
             print("Retrying...", file=sys.stderr)
+            situations = list()
+            transitions = list()
+            background_prompts = list()
+
+    print("Generating backgrounds")
+    # initializing Stable Diffusion 3
+    pipe = StableDiffusion3Pipeline.from_pretrained(
+        "stabilityai/stable-diffusion-3-medium-diffusers",
+        torch_dtype=torch.float16
+    )
+    pipe = pipe.to("cuda")
+    for i in range(len(background_prompts)):
+        image = pipe(
+            prompt=f'background image with {response["message"]["content"]}',
+            negative_prompt="human, text, people, person, student, face, body, letters, words, character",
+            num_inference_steps=100,
+            height=576,
+            width=1024,
+            guidance_scale=15
+        ).images[0]
+
+        image.save(f"bg{i}.png")
 
     del pipe
     torch.cuda.empty_cache()

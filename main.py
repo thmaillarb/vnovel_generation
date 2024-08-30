@@ -285,9 +285,12 @@ if __name__ == '__main__':
                 talker = dialogue[0].strip()
                 if talker.lower() in characters_lowercase:
                     talker_index = characters_lowercase.index(talker.lower())
-                    f.write(f'    c{talker_index} "{dialogue[2]}"\n')
+                    spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
+                    f.write(f'    c{talker_index} "{spoken_line}"\n')
                 elif talker.lower() in ["me","you"]:
-                    f.write(f'    me "{dialogue[2]}"\n')
+                    spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
+                    f.write(f'    me "{spoken_line}"\n')
                 else:
-                    f.write(f'    "{dialogue[0]}"\n')
+                    spoken_line = dialogue[0].encode("utf-8", "ignore").decode("utf-8")
+                    f.write(f'    "{spoken_line}"\n')
             break

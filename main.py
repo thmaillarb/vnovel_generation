@@ -285,9 +285,9 @@ if __name__ == '__main__':
                 talker = dialogue[0].strip()
                 if talker.lower() in characters_lowercase:
                     talker_index = characters_lowercase.index(talker.lower())
-                    f.write(f'\tc{talker_index} "{dialogue[2]}"\n')
+                    f.write(f'    c{talker_index} "{dialogue[2]}"\n')
                 elif talker.lower() in ["me","you"]:
-                    f.write(f'\tme "{dialogue[2]}"\n')
+                    f.write(f'    me "{dialogue[2]}"\n')
                 else:
-                    f.write(f'\t "{dialogue[0]}"\n')
+                    f.write(f'    "{dialogue[0]}"\n')
             break

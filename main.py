@@ -9,11 +9,28 @@ import re
 import zipfile
 from time import time
 
+
 def no_blank_line(text):
     lines = text.split("\n")
     non_empty_lines = [line for line in lines if line.strip() != ""]
     ret = "\n".join(non_empty_lines)
     return "\n".join(non_empty_lines)
+
+
+def talk(line, characters_lowercase):
+    dialogue = line.partition(":")
+    talker = dialogue[0].strip()
+    if talker.lower() in characters_lowercase:
+        talker_index = characters_lowercase.index(talker.lower())
+        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
+        return f'    c{talker_index} "{spoken_line}"\n'
+    elif talker.lower() in ["me", "you"]:
+        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
+        return f'    me "{spoken_line}"\n'
+    else:
+        spoken_line = bytes(dialogue[0], 'utf-8').decode("utf-8", 'ignore')
+        return f'    "{spoken_line}"\n'
+
 
 class Situation:
     """
@@ -115,6 +132,7 @@ class Situation:
             self._endings = None
             raise Exception("Couldn't generate/parse properly: there isn't the same amount of endings and of answers")
 
+
 if __name__ == '__main__':
     # reading questions
     with open("questions.yaml", "r") as file:
@@ -190,6 +208,8 @@ if __name__ == '__main__':
                         "num_ctx": 8192
                     }
                 )
+                response["message"]["content"] = response["message"]["content"].encode("utf-8", "ignore").decode(
+                    "utf-8")
                 situation.parse(
                     response["message"]["content"] + "\npini")  # Quick and dirty bugfix to recognise the last answer
                 print(response["message"]["content"])
@@ -223,6 +243,8 @@ if __name__ == '__main__':
 
                 # llama3 writes a sentence like "Sure, here's an example of transition" before giving the actual transition,
                 # so we make sure to only get the transition (which always took one line when we tested it)
+                response["message"]["content"] = response["message"]["content"].encode("utf-8", "ignore").decode(
+                    "utf-8")
                 transition = response["message"]["content"].splitlines()[-1]
                 transitions.append(transition)
 
@@ -245,7 +267,6 @@ if __name__ == '__main__':
                 }
             )
 
-
             for line in response["message"]["content"].split("\n"):
                 if line.startswith("*") or "you" not in line.lower() or "me" not in line.lower():
                     characters.append(line[2:])
@@ -266,12 +287,13 @@ if __name__ == '__main__':
         f.extractall(game_name)
 
     print("Configuring the game")
-    with open(f"{game_name}/base/game/options.rpy","a") as f:
+    with open(f"{game_name}/base/game/options.rpy", "a") as f:
         f.write(f'define config.save_directory = "{game_name}"')
 
     print("Generating the script")
 
-    with open(f"{game_name}/base/game/script.rpy","w") as f:
+    with open(f"{game_name}/base/game/script.rpy", "w", encoding="utf8") as f:
+        f = open(f"{game_name}/base/game/script.rpy", "w")
         # Registering characters
         f.write("define me = Character('Me')\n")
         for i in range(len(characters)):
@@ -281,16 +303,41 @@ if __name__ == '__main__':
             print(f"Writing situation {i}")
             f.write(f"label story{i}:\n")
             for line in situations[i].introduction.split("\n"):
-                dialogue = line.partition(":")
-                talker = dialogue[0].strip()
-                if talker.lower() in characters_lowercase:
-                    talker_index = characters_lowercase.index(talker.lower())
-                    spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
-                    f.write(f'    c{talker_index} "{spoken_line}"\n')
-                elif talker.lower() in ["me","you"]:
-                    spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
-                    f.write(f'    me "{spoken_line}"\n')
+                f.write(talk(line, characters_lowercase))
+                # dialogue = line.partition(":")
+                # talker = dialogue[0].strip()
+                # if talker.lower() in characters_lowercase:
+                #     talker_index = characters_lowercase.index(talker.lower())
+                #     spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
+                #     f.write(f'    c{talker_index} "{spoken_line}"\n')
+                # elif talker.lower() in ["me","you"]:
+                #     spoken_line = dialogue[2].encode("utf-8", "ignore").decode("utf-8")
+                #     f.write(f'    me "{spoken_line}"\n')
+                # else:
+                #     spoken_line = dialogue[0].encode("utf-8", "ignore").decode("utf-8")
+                #     f.write(f'    "{spoken_line}"\n')
+            f.write("menu:\n")
+            for j in range(len(situations[i].answers)):
+                answer = situations[i].answers[j]
+                f.write(f'    "{answer}":\n')
+                f.write(f'        jump s{i}a{j}\n')
+
+            for j in range(len(situations[i].endings)):
+                f.write(f"label s{i}a{j}:\n")
+                for line in situations[i].endings[j].split("\n"):
+                    f.write(talk(line, characters_lowercase))
+
+                if j == situations[i].correct_answer_index:
+                    if i + 1 == len(situations):
+                        f.write("    jump ending\n")
+                    else:
+                        for line in transitions[i]:
+                            f.write(talk(line, characters_lowercase))
+                        f.write(f"    jump story{i}\n")
                 else:
-                    spoken_line = dialogue[0].encode("utf-8", "ignore").decode("utf-8")
-                    f.write(f'    "{spoken_line}"\n')
-            break
+                    f.write("    jump menu\n")
+
+        f.write(
+            "label ending\n"
+            '    "Thanks for playing!"'
+        )

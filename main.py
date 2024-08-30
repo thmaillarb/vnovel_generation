@@ -97,13 +97,23 @@ class Situation:
         self._introduction = re.search(r"=*(.+?)\n+?(--+|==+|Answer [0-9]+)", story, flags=re.DOTALL).group(1)
         self._introduction = no_blank_line(self._introduction)
 
+        if self._introduction is None:
+            raise Exception("Couldn't generate/parse the introduction.")
+
         self._endings = list()
         for match in re.finditer(r"(Ending with answer [0-9]+:?\n)?--+\n(.+?)(--+|pini|Answer [0-9])", story,
                                  flags=re.DOTALL):
             ending = match.group(2)
             ending = no_blank_line(ending)
+            if ending is None:
+                self._introduction = None
+                self._endings = None
+                raise Exception("An ending couldn't be generated or parsed.")
             self._endings.append(ending)
-
+        if len(self._endings) != len(self._answers):
+            self._introduction = None
+            self._endings = None
+            raise Exception("Couldn't generate/parse properly: there isn't the same amount of endings and of answers")
 
 if __name__ == '__main__':
     # reading questions
@@ -122,10 +132,10 @@ if __name__ == '__main__':
 
     # Generating a story for each situation
     # TODO Improvement (?), use .format if it doesn't recreate the whole string every time
-    for situation in situations:
-        print(f"Situation {situations.index(situation)}")
-        while True:
-            try:
+    while True:
+        try:
+            for situation in situations:
+                print(f"Situation {situations.index(situation)}")
                 prompt = f"Create a story based on this question: {situation.question}. The possible answers are:\n"
                 # List of possible answers. The number of answers is undefined, hence the for loop.
                 for i in range(len(situation.answers)):
@@ -183,83 +193,70 @@ if __name__ == '__main__':
                 situation.parse(
                     response["message"]["content"] + "\npini")  # Quick and dirty bugfix to recognise the last answer
                 print(response["message"]["content"])
-                # Generating transitions
-                transitions = list()
-                break
-            except Exception as e:
-                print(traceback.print_exc(file=sys.stderr))
-                print("Retrying...", file=sys.stderr)
+            # Generating transitions
+            transitions = list()
+            for i in range(len(situations) - 1):
+                # Compiling the correct path of the 1st story.
+                prompt = "Write a transition between these two texts. They are part of the same story. The narrator is the " \
+                         "same person. Write only the transition of the story. The transition must feel natural. The first " \
+                         "text describes events happening before those of the second text.\n" \
+                         "The format should be:\n" \
+                         "Here is the transition" \
+                         "======================" \
+                         "(the actual transition)\n" \
+                         f"Here is the first text: '{situations[i].good_story}'\n\n" \
+                         f"Here is the second text: '{situations[i + 1].introduction}'"
 
-        while True:
-            try:
-                for i in range(len(situations) - 1):
-                    # Compiling the correct path of the 1st story.
-                    prompt = "Write a transition between these two texts. They are part of the same story. The narrator is the " \
-                             "same person. Write only the transition of the story. The transition must feel natural. The first " \
-                             "text describes events happening before those of the second text.\n" \
-                             "The format should be:\n" \
-                             "Here is the transition" \
-                             "======================" \
-                             "(the actual transition)\n" \
-                             f"Here is the first text: '{situations[i].good_story}'\n\n" \
-                             f"Here is the second text: '{situations[i + 1].introduction}'"
-
-                    # Using llama3 because it's better at actually giving a chronological transition.
-                    response = ollama_client.chat(
-                        model="llama3:8b",
-                        messages=[
-                            {
-                                'role': 'user',
-                                'content': prompt
-                            }
-                        ],
-                        options={
-                            'top_p': 0.8
-                        }
-                    )
-
-                    # llama3 writes a sentence like "Sure, here's an example of transition" before giving the actual transition,
-                    # so we make sure to only get the transition (which always took one line when we tested it)
-                    transition = response["message"]["content"].splitlines()[-1]
-                    transitions.append(transition)
-                break
-            except Exception as e:
-                print(traceback.print_exc(file=sys.stderr))
-                print("Retrying...", file=sys.stderr)
-        while True:
-            try:
-                prompt = f"List all the characters. Only give the names, don't give any context. Make an unordered list, " \
-                         f"with each element starting with a * symbol. Here are the stories:\n\n"
-                for situation in situations:
-                    prompt += situation.good_story + "\n\n"
-
+                # Using llama3 because it's better at actually giving a chronological transition.
                 response = ollama_client.chat(
-                    model="llama2:7b",
+                    model="llama3:8b",
                     messages=[
                         {
-                            "role": "user",
-                            "content": prompt
+                            'role': 'user',
+                            'content': prompt
                         }
                     ],
                     options={
-                        "temperature": 0
+                        'top_p': 0.8
                     }
                 )
 
-                characters = list()
-                for line in response["message"]["content"].split("\n"):
-                    if line.startswith("*") or "you" not in line.lower() or "me" not in line.lower():
-                        characters.append(line[2:])
+                # llama3 writes a sentence like "Sure, here's an example of transition" before giving the actual transition,
+                # so we make sure to only get the transition (which always took one line when we tested it)
+                transition = response["message"]["content"].splitlines()[-1]
+                transitions.append(transition)
 
-                characters_lowercase = [x.lower() for x in characters]
+            characters = list()
+            prompt = f"List all the characters. Only give the names, don't give any context. Make an unordered list, " \
+                     f"with each element starting with a * symbol. Here are the stories:\n\n"
+            for situation in situations:
+                prompt += situation.good_story + "\n\n"
 
-                print(response["message"]["content"])
-                break
-            except Exception as e:
-                print(traceback.print_exc(file=sys.stderr))
-                print("Retrying...", file=sys.stderr)
+            response = ollama_client.chat(
+                model="llama2:7b",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                options={
+                    "temperature": 0
+                }
+            )
 
 
+            for line in response["message"]["content"].split("\n"):
+                if line.startswith("*") or "you" not in line.lower() or "me" not in line.lower():
+                    characters.append(line[2:])
+
+            characters_lowercase = [x.lower() for x in characters]
+
+            print(response["message"]["content"])
+            break
+        except Exception as e:
+            print(traceback.print_exc(file=sys.stderr))
+            print("Retrying...", file=sys.stderr)
 
     print("Extracting base game")
 

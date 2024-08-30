@@ -288,7 +288,9 @@ if __name__ == '__main__':
 
                 str_intro = "\n".join([str(x) for x in situation.introduction])
 
-                prompt = f"Describe where this scene takes place in 70 keywords or less. Don't write sentences, " \
+                prompt = f"Describe where this scene takes place in 70 keywords or less. You must describe the " \
+                         f"location of the scene with what the reader might imagine, in a neutral way. You must be " \
+                         f"objective, not subjective. Don't write sentences, " \
                          f"only keywords. You are not allowed to write keywords that refer to people, humans, " \
                          f"or body:\n{str(str_intro)}"
                 response = ollama_client.chat(
@@ -365,12 +367,12 @@ if __name__ == '__main__':
     pipe = pipe.to("cuda")
     for i in range(len(background_prompts)):
         image = pipe(
-            prompt=f'background image with {response["message"]["content"]}',
-            negative_prompt="human, text, people, person, student, face, body, letters, words, character",
-            num_inference_steps=100,
+            prompt=f'anime background image of {response["message"]["content"]}',
+            negative_prompt="there is humans in the room",
+            num_inference_steps=60,
             height=576,
             width=1024,
-            guidance_scale=15
+            guidance_scale=7
         ).images[0]
 
         image.save(f"bg{i}.png")

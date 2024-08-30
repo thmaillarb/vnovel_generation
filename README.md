@@ -4,7 +4,34 @@ Builds upon Xiaoyu Han's project to automate the generation of visual novels abo
 
 ## Usage
 
-TODO
+These instructions are written for Windows only.
+
+1. (Optional) Create a new virtual environment and enable it (git ignores it if it's named venv):
+   ```bash
+   python3 -m venv venv
+   .\venv\Scripts\activate.ps1
+   ```
+2. Install the dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Download [Ren'Py](https://www.renpy.org/release/8.2.3) and extract it in a new `renpy` folder.
+
+   Note: Only version 8.2.3 was tested. Use other versions at your own risk.
+4. Download and install [Ollama](https://ollama.com/download).
+5. Pull the `llama3:8b` and `gemma2:9b` models:
+   ```bash
+   ollama pull llama3:8b
+   ollama pull gemma2:9b
+   ```
+6. Make sure you have access to the [Stable Diffusion 3 Medium](https://huggingface.co/stabilityai/stable-diffusion-3-medium) model on HuggingFace, then log into your account:
+   ```bash
+   huggingface-cli login
+   ```
+7. Run the script:
+   ```bash
+   PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python main.py
+   ```
 
 ## Config
 
@@ -29,4 +56,4 @@ situations:
     correct_answer: 0
 ```
 
-See the actual `questions.yaml` file for an example.
+See the `situation examples` directory for sample files.

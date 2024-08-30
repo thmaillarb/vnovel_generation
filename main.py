@@ -10,44 +10,39 @@ import os
 import torch
 from diffusers import StableDiffusion3Pipeline
 
-def no_blank_line(text):
-    lines = text.split("\n")
-    non_empty_lines = [line for line in lines if line.strip() != ""]
-    ret = "\n".join(non_empty_lines)
-    return "\n".join(non_empty_lines)
-
-
-def talk(line, characters_lowercase):
-    dialogue = line.partition(":")
-    talker = dialogue[0].strip()
-    if talker.lower() in characters_lowercase:
-        talker_index = characters_lowercase.index(talker.lower())
-        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    c{talker_index} "{spoken_line}"\n'
-    elif talker.lower() in ["me", "you"]:
-        spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    me "{spoken_line}"\n'
-    else:
-        spoken_line = bytes(dialogue[0], 'utf-8').decode("utf-8", 'ignore')
-        spoken_line = spoken_line.replace("\"", "\\\"")
-        return f'    "{spoken_line}"\n'
 
 class Dialogue:
-    def __init__(self, line, speaker = None):
+    """
+    Represents a single line of dialogue. Includes the name of the character speaking if it exists.
+    """
+    def __init__(self, line, speaker=None):
+        """
+        Constructor of the Dialogue class.
+
+        Args:
+            line (str): The actual line of dialogue
+            speaker (str or None): The character speaking.
+        """
         self._speaker = speaker
         self._line = line.replace("\"", "\\\"")
 
     @property
     def line(self):
+        """str: The actual line of dialogue"""
         return self._line
 
     @property
     def speaker(self):
+        """str or None: The character speaking, or None if the Dialogue is not said by anyone."""
         return self._speaker
 
     def renpy_line(self, characters):
+        """
+        The line as it should be added in the current Ren'Py project.
+
+        :param characters: The list of characters in this Ren'Py project.
+        :return: The line as it should be added in the current Ren'Py project.
+        """
         if self._speaker:
             c_index = characters.index(self._speaker)
             return f'c{c_index} "{self._line}"'
@@ -59,7 +54,7 @@ class Dialogue:
 
 class Situation:
     """
-    Used to represent a question and its answers, generally obtained from the YAML file.
+    Represents a question and its answers, generally obtained from the YAML file.
     """
 
     def __init__(self, question: str, correct_answer_index: int, answers: tuple):
@@ -122,6 +117,9 @@ class Situation:
 
     @property
     def good_story(self):
+        """
+        str: returns the introduction and the good ending.
+        """
         if self._introduction is None or self._endings is None:
             raise AttributeError("Introduction and/or endings undefined - have you run parse()?")
         story = "\n".join([str(x) for x in self.introduction + [self.correct_answer] + self.good_ending])
@@ -224,6 +222,7 @@ if __name__ == '__main__':
     with open("questions.yaml", "r") as file:
         questions_yaml = yaml.safe_load(file)
 
+    # Parsing the YAML file.
     situations = list()
     for situation in questions_yaml['situations']:
         question = situation["question"]
@@ -232,13 +231,14 @@ if __name__ == '__main__':
         obj = Situation(question, correct_answer, answers)
         situations.append(obj)
 
+    # Instanciating the ollama client.
     ollama_client = Client(host="http://localhost:11434", timeout=20 * 60)  # 20 minutes of timeout
 
+    # Creating lists to store the transitions and the prompts for the background images.
     transitions = list()
     background_prompts = list()
 
     # Generating a story for each situation
-    # TODO Improvement (?), use .format if it doesn't recreate the whole string every time
     while True:
         try:
             for situation in situations:
@@ -283,11 +283,11 @@ if __name__ == '__main__':
                         'top_p': 0.75
                     }
                 )
-                print(response["message"]["content"])
                 situation.parse(response["message"]["content"])
 
+                # Generating prompts for the background images.
+                # It should be very
                 str_intro = "\n".join([str(x) for x in situation.introduction])
-
                 prompt = f"Describe where this scene takes place. You must describe the " \
                          f"location of the scene with what the reader might imagine, in a neutral way. You must be " \
                          f"objective, not subjective. Don't write sentences, " \
@@ -313,8 +313,6 @@ if __name__ == '__main__':
                 )
                 print(response["message"]["content"])
                 background_prompts.append(response["message"]["content"])
-
-
 
             # Generating transitions
             transitions = list()
@@ -349,7 +347,6 @@ if __name__ == '__main__':
                 transition = response["message"]["content"].encode("utf-8", "ignore").decode(
                     "utf-8").replace("\"", "\\\"")
                 transitions.append(transition)
-                pass
             break
         except Exception as e:
             print(traceback.print_exc(file=sys.stderr))
@@ -377,6 +374,7 @@ if __name__ == '__main__':
 
         image.save(f"bg{i}.png")
 
+    # Getting rid of the pipeline to save VRAM
     del pipe
     torch.cuda.empty_cache()
 

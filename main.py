@@ -392,7 +392,7 @@ if __name__ == '__main__':
 
     os.makedirs(f"{game_name}/base/game/images/bg")
     for i in range(len(situations)):
-        os.rename(f"background{i}.png", f"{game_name}/base/game/images/bg/background{i}.png")
+        os.rename(f"bg{i}.png", f"{game_name}/base/game/images/bg{i}.png")
 
     print("Generating the script")
 

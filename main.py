@@ -10,7 +10,6 @@ import zipfile
 from time import time
 import os
 
-
 def no_blank_line(text):
     lines = text.split("\n")
     non_empty_lines = [line for line in lines if line.strip() != ""]
@@ -35,6 +34,21 @@ def talk(line, characters_lowercase):
         spoken_line = spoken_line.replace("\"", "\\\"")
         return f'    "{spoken_line}"\n'
 
+class Dialogue:
+    def __init__(self, line, speaker = None):
+        self._speaker = speaker
+        self._line = line.replace("\"", "\\\"")
+
+    @property
+    def line(self):
+        return self._line
+
+    @property
+    def speaker(self):
+        return self._speaker
+
+    def __str__(self):
+        return self._line
 
 class Situation:
     """
@@ -103,9 +117,9 @@ class Situation:
         if self._introduction is None or self._endings is None:
             raise AttributeError("Introduction and/or endings undefined - have you run parse()?")
         return "\n".join((
-            self.introduction,
-            self.correct_answer,
-            self.good_ending
+            "\n".join(self.introduction),
+            "\n".join(self.correct_answer),
+            "\n".join(self.good_ending)
         ))
 
     def parse(self, story):
@@ -114,30 +128,85 @@ class Situation:
         :param story: the generated story.
         :type story: str
         """
-        story = re.sub(r"(\*\*|##)", "", story)
-        self._introduction = re.search(r"=*(.+?)\n+?(--+|==+|Answer [0-9]+)", story, flags=re.DOTALL).group(1)
-        self._introduction = self._introduction.replace(".",".\n")
-        self._introduction = no_blank_line(self._introduction)
+        story_per_line = story.split("\n")
+        dialogues_dict = dict()  # Dictionary line => dialogue
+        i = story_per_line.index("| Speaker | Dialogue |") + 2  # skipping header of table and "|---|---|" line
+        while True:
+            if i == len(story_per_line) or not story_per_line[i].strip():
+                break
+            line = story_per_line[i][2:-2].split("|")
+            speaker = line[0].strip()
+            dialogue = line[1].strip()
 
-        if self._introduction is None:
-            raise Exception("Couldn't generate/parse the introduction.")
+            #escaped_dialogue = re.escape(dialogue)
+            #words = escaped_dialogue.split(" ")
+            words = dialogue.split()
 
+            # pattern = r'\b.*?\b'.join(words)
+            pattern = r""
+            for word in words[:-1]:
+                pattern += re.escape(word)
+                pattern += r'.*?'
+            pattern += words[-1]
+
+            dialogues_dict[pattern] = speaker
+            i += 1
+
+        # introduction
+        i = story_per_line.index("## Introduction") + 2
+        self._introduction = list()
+        while True:
+            if story_per_line[i].startswith("##") or story_per_line[i+1].startswith("## "):
+                break
+
+            if not story_per_line[i].strip():
+                i += 1
+                continue
+
+            for pattern, speaker in dialogues_dict.items():
+                added = False
+                if re.search(pattern, story_per_line[i], re.DOTALL):
+                    dialogue_line = Dialogue(story_per_line[i], speaker)
+                    self._introduction.append(dialogue_line)
+                    added = True
+                    break
+
+            if added:
+                dialogues_dict.pop(pattern)
+            else:
+                dialogue_line = Dialogue(story_per_line[i])
+                self._introduction.append(dialogue_line)
+
+            i += 1
+
+        # endings
         self._endings = list()
-        for match in re.finditer(r"(Ending with answer [0-9]+:?\n)?--+\n(.+?)(--+|pini|Answer [0-9])", story,
-                                 flags=re.DOTALL):
-            ending = match.group(2)
-            ending = ending.replace(".",".\n")
-            ending = no_blank_line(ending)
-            if ending is None:
-                self._introduction = None
-                self._endings = None
-                raise Exception("An ending couldn't be generated or parsed.")
-            self._endings.append(ending)
-        if len(self._endings) != len(self._answers):
-            self._introduction = None
-            self._endings = None
-            raise Exception("Couldn't generate/parse properly: there isn't the same amount of endings and of answers")
+        for i in range(len(self._answers)):
+            j = story_per_line.index(f"## Ending with answer {i}") + 2
+            ending = list()
+            while True:
+                if story_per_line[j].startswith("## ") or story_per_line[j+1].startswith("## "):
+                    break
+                if story_per_line[j] == "":
+                    j += 1
+                    continue
 
+                for pattern, speaker in dialogues_dict.items():
+                    added = False
+                    if re.search(pattern, story_per_line[j], re.DOTALL):
+                        dialogue_line = Dialogue(story_per_line[j], speaker)
+                        ending.append(dialogue_line)
+                        added = True
+                        break
+
+                if added:
+                    dialogues_dict.pop(pattern)
+                else:
+                    dialogue_line = Dialogue(story_per_line[j])
+                    ending.append(dialogue_line)
+
+                j += 1
+            self._endings.append(ending)
 
 if __name__ == '__main__':
     # reading questions
@@ -161,7 +230,7 @@ if __name__ == '__main__':
     while True:
         try:
             for situation in situations:
-                print(f"Situation {situations.index(situation)}")
+                print(f"# Situation {situations.index(situation)}")
                 prompt = f"Create a story based on this question: {situation.question}. The possible answers are:\n"
                 # List of possible answers. The number of answers is undefined, hence the for loop.
                 for i in range(len(situation.answers)):
@@ -172,16 +241,19 @@ if __name__ == '__main__':
                           f"consequences for all the characters involved. Write the story with an introduction, leading to " \
                           f"the choice to make. You have to write all the different endings each option lead to. Do not reword " \
                           f"the choices. The good ending must be at least 3 paragraphs long. The story must be " \
-                          f"written in a first person point of view. The format of the story should be this " \
+                          f"written in a third person point of view. The story must be more dialogue than description " \
+                          f"because it is a visual novel. For each line, one character can talk at most. The format " \
+                          f"should be markdown. After finishing the story, " \
+                          f"list all the dialogues with the speakers name, preferably in a table." \
+                          f"The format of the story should be this " \
                           f"(replace each part of the format by the corresponding element):\n" \
-                          "Introduction\n" \
-                          "========================\n"
+                          "## Introduction\n"
 
                 # Better results if we're explicitly asking for each answer
+
                 for i in range(len(situation.answers)):
-                    prompt += f"Answer {i}: {situation.answers[i]}\n" \
-                              f"Ending with answer {i}\n" \
-                              f"-----------------------\n"
+                    prompt += f"## Ending with answer {i}\n"
+                prompt += "## Dialogues\n"
                 # Gemma 2 gives better sounding stories in our opinion and has a more consistent format
                 response = ollama_client.chat(
                     model="gemma2:9b",
@@ -196,31 +268,10 @@ if __name__ == '__main__':
                     }
                 )
                 print(response["message"]["content"])
-                prompt = f"Rewrite the story. Don't change anything except when characters speak. You have to reformat the " \
-                         f"dialogues like this: CHARACTER: dialogue.\n" \
-                         f"Each sentence must end with a line break. The lines of dialogue the protagonist say must be " \
-                         f"written with 'YOU' in front of them. Don't write stage directions in the dialogues. Make " \
-                         f"sure to completely write all the endings. You still have to write the parts of the story " \
-                         f"that are not dialogue. Here is the story:\n" \
-                         f"{response['message']['content']}"
-                response = ollama_client.chat(
-                    model="gemma2:9b",
-                    messages=[
-                        {
-                            'role': 'user',
-                            'content': prompt
-                        }
-                    ],
-                    options={
-                        "temperature": 0.15,
-                        "num_ctx": 8192
-                    }
-                )
-                response["message"]["content"] = response["message"]["content"].encode("utf-8", "ignore").decode(
-                    "utf-8")
-                situation.parse(
-                    response["message"]["content"] + "\npini")  # Quick and dirty bugfix to recognise the last answer
-                print(response["message"]["content"])
+                situation.parse(response["message"]["content"])
+                continue
+
+            sys.exit(0)
             # Generating transitions
             transitions = list()
             for i in range(len(situations) - 1):
@@ -265,7 +316,7 @@ if __name__ == '__main__':
                 prompt += situation.good_story + "\n\n"
 
             response = ollama_client.chat(
-                model="llama2:7b",
+                model="llama3:7b",
                 messages=[
                     {
                         "role": "user",
@@ -283,8 +334,8 @@ if __name__ == '__main__':
 
             characters_lowercase = [x.lower() for x in characters]
 
+
             print(response["message"]["content"])
-            break
         except Exception as e:
             print(traceback.print_exc(file=sys.stderr))
             print("Retrying...", file=sys.stderr)

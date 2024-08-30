@@ -327,11 +327,11 @@ if __name__ == '__main__':
                 # else:
                 #     spoken_line = dialogue[0].encode("utf-8", "ignore").decode("utf-8")
                 #     f.write(f'    "{spoken_line}"\n')
-            f.write("menu:\n")
+            f.write("    menu:\n")
             for j in range(len(situations[i].answers)):
                 answer = situations[i].answers[j]
-                f.write(f'    "{answer}":\n')
-                f.write(f'        jump s{i}a{j}\n')
+                f.write(f'        "{answer}":\n')
+                f.write(f'            jump s{i}a{j}\n')
 
             for j in range(len(situations[i].endings)):
                 f.write(f"label s{i}a{j}:\n")

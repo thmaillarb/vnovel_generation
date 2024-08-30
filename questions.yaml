@@ -1,15 +1,13 @@
 situations:
-  - :
-    question: "Friends pressurise you to share exam answers. How do you respond?"
+  - question: "Friends pressurise you to share exam answers. How do you respond?"
     answers:
       - "You avoid your friend until exams are over"
       - "You give in to the pressure and share your exam answers with your friends"
       - "You express discomfort with the request but offer to help your friends understand the material or study together instead"
       - "You report the situation to your instructor or a relevant authority, seeking guidance on how to handle the pressure"
-    correct_answer: 3
+    correct_answer: 2
 
-  - :
-    question: "Your lecturer inadvertently shares answers to a future test. What's your course of action?"
+  - question: "Your lecturer inadvertently shares answers to a future test. What's your course of action?"
     answers:
       - "You immediately report the incident to your lecturer, bringing attention to the inadvertent sharing of answers"
       - "You take advantage of the situation and use the shared answers during the test"
@@ -17,8 +15,7 @@ situations:
       - "You share the answers with your classmates, capitalizing on the advantage for the group"
     correct_answer: 0
 
-  - :
-    question: "You disagree with your professor's point of view. Do you anonymously post a critique online?"
+  - question: "You disagree with your professor's point of view. Do you anonymously post a critique online?"
     answers:
       - "You post an anonymous critique online, attacking the professor personally rather than their ideas"
       - "You engage in respectful and constructive dialogue directly with the professor"

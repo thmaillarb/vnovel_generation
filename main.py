@@ -390,7 +390,6 @@ if __name__ == '__main__':
     with open(f"{game_name}/base/game/options.rpy", "a") as f:
         f.write(f'define config.save_directory = "{game_name}"')
 
-    os.makedirs(f"{game_name}/base/game/images/bg")
     for i in range(len(situations)):
         os.rename(f"bg{i}.png", f"{game_name}/base/game/images/bg{i}.png")
 

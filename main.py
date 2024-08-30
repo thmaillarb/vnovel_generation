@@ -93,7 +93,7 @@ class Situation:
         :param story: the generated story.
         :type story: str
         """
-        story = re.sub(r"(\*\*|##)", "", story).split("\n", 1)[-1][1:]
+        story = re.sub(r"(\*\*|##)", "", story)
         self._introduction = re.search(r"=*(.+?)\n+?(--+|==+|Answer [0-9]+)", story, flags=re.DOTALL).group(1)
         self._introduction = no_blank_line(self._introduction)
 

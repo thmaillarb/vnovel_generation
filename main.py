@@ -28,9 +28,11 @@ def talk(line, characters_lowercase):
         return f'    c{talker_index} "{spoken_line}"\n'
     elif talker.lower() in ["me", "you"]:
         spoken_line = bytes(dialogue[2], 'utf-8').decode("utf-8", 'ignore')
+        spoken_line = spoken_line.replace("\"", "\\\"")
         return f'    me "{spoken_line}"\n'
     else:
         spoken_line = bytes(dialogue[0], 'utf-8').decode("utf-8", 'ignore')
+        spoken_line = spoken_line.replace("\"", "\\\"")
         return f'    "{spoken_line}"\n'
 
 
@@ -339,7 +341,7 @@ if __name__ == '__main__':
                     f.write("    jump menu\n")
 
         f.write(
-            "label ending\n"
+            "label ending:\n"
             '    "Thanks for playing!"'
         )
         f.flush()

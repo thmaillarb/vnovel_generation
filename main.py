@@ -7,6 +7,8 @@ import re
 import sys
 import zipfile
 import os
+import torch
+from diffusers import StableDiffusion3Pipeline
 
 def no_blank_line(text):
     lines = text.split("\n")
@@ -218,6 +220,14 @@ class Situation:
             self._endings.append(ending)
 
 if __name__ == '__main__':
+    print("Initializing Stable Diffusion 3 Pipeline...")
+    # initializing Stable Diffusion 3
+    pipe = StableDiffusion3Pipeline.from_pretrained(
+        "stabilityai/stable-diffusion-3-medium-diffusers",
+        torch_dtype=torch.float16
+    )
+    pipe = pipe.to("cuda")
+
     # reading questions
     with open("questions.yaml", "r") as file:
         questions_yaml = yaml.safe_load(file)
@@ -283,6 +293,43 @@ if __name__ == '__main__':
                 print(response["message"]["content"])
                 situation.parse(response["message"]["content"])
 
+                print("Generating the image")
+
+                str_intro = "\n".join([str(x) for x in situation.introduction])
+
+                prompt = f"Describe where this scene takes place in 70 keywords or less. Don't write sentences, " \
+                         f"only keywords. You are not allowed to write keywords that refer to people, humans, " \
+                         f"or body:\n{str(str_intro)}"
+                response = ollama_client.chat(
+                    model="llama3:8b",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Respond with 70 words or less. Don't talk about characters of people."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    options={
+                        "top_p": 0.1,
+                        "temperature": 0.1
+                    }
+                )
+                print(response["message"]["content"])
+
+                image = pipe(
+                    prompt=response["message"]["content"],
+                    negative_prompt="humans, text, people, person, student, face, body",
+                    num_inference_steps=100,
+                    height=576,
+                    width=1024,
+                    guidance_scale=15
+                ).images[0]
+
+                image.save(f"bg{situations.index(situation)}.png")
+
             # Generating transitions
             transitions = list()
             print("Generating transitions")
@@ -321,6 +368,9 @@ if __name__ == '__main__':
             print(traceback.print_exc(file=sys.stderr))
             print("Retrying...", file=sys.stderr)
 
+    del pipe
+    torch.cuda.empty_cache()
+
     print("Getting character list")
 
     all_characters = list()
@@ -340,9 +390,13 @@ if __name__ == '__main__':
     with open(f"{game_name}/base/game/options.rpy", "a") as f:
         f.write(f'define config.save_directory = "{game_name}"')
 
+    os.makedirs(f"{game_name}/base/game/images/bg")
+    for i in range(len(situations)):
+        os.rename(f"background{i}.png", f"{game_name}/base/game/images/bg/background{i}.png")
+
     print("Generating the script")
 
-    with open(f"{game_name}/base/game/script-tmp.rpy", "w", encoding="utf8") as f:
+    with open(f"{game_name}/base/game/script-tmp.rpy", "a", encoding="utf8") as f:
         # Registering characters
         for i in range(len(all_characters)):
             f.write(f'define c{i} = Character("{all_characters[i]}")\n')
@@ -354,6 +408,8 @@ if __name__ == '__main__':
         for i in range(len(situations)):
             print(f"Writing situation {i}")
             f.write(f"label story{i}:\n")
+            f.write(f"    scene bg{i} at image_upscale\n")
+            f.write(f"    with dissolve\n")
 
             # Introduction
             for line in situations[i].introduction:

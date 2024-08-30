@@ -1,0 +1,30 @@
+situations:
+  - question: "You've discovered a security flaw in a public genetic database."
+    answers:
+      - "Report it anonymously to the database administrators."
+      - "Inform the affected patients directly."
+      - "Ignore it; it’s not your responsibility."
+      - "Publish the flaw to highlight the importance of cybersecurity in bioinformatics."
+    correct_answer: 0
+
+  - question: "You're accidentally exposed to a microbe of unknown pathogenicity."
+    answers:
+      - "Report the exposure and quarantine as per safety protocol."
+      - "Monitor your health closely while continuing work."
+      - "Downplay the incident to avoid disruption in the lab."
+      - "Hide the exposure to avoid personal consequences."
+    correct_answer: 0
+
+  - question: "You find that introducing a foreign species can control an invasive plant. Do you introduce it?"
+    answers:
+      - "Propose a controlled study first."
+      - "Seek public opinion and consensus before deciding."
+      - "No, the risks to the ecosystem are too great."
+    correct_answer: 0
+  - question: "Your research consumes rare resources, but results are promising."
+    answers:
+      - "Seek alternatives that are more sustainable."
+      - "Reduce the scale of your research to conserve resources."
+      - "Stop the research until you find a sustainable method."
+      - "Continue as is; the results justify the means."
+    correct_answer: 0

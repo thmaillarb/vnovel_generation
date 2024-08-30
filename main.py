@@ -396,7 +396,7 @@ if __name__ == '__main__':
 
     print("Generating the script")
 
-    with open(f"{game_name}/base/game/script-tmp.rpy", "a", encoding="utf8") as f:
+    with open(f"{game_name}/base/game/script.rpy", "a", encoding="utf8") as f:
         # Registering characters
         for i in range(len(all_characters)):
             f.write(f'define c{i} = Character("{all_characters[i]}")\n')
@@ -448,5 +448,6 @@ if __name__ == '__main__':
         f.flush()
         os.fsync(f.fileno())
 
-    os.system(f'powershell -command "Get-Content .\\{game_name}\\base\\game\\script-tmp.rpy | Set-Content -Encoding utf8 .\\{game_name}\\base\\game\\script.rpy"')
-    os.remove(f"{game_name}/base/game/script-tmp.rpy")
+    os.system(f'powershell -command "Get-Content .\\{game_name}\\base\\game\\script.rpy | Set-Content -Encoding utf8 .\\{game_name}\\base\\game\\script-tmp.rpy"')
+    os.remove(f"{game_name}/base/game/script.rpy")
+    os.rename(f"{game_name}/base/game/script-tmp.rpy", f"{game_name}/base/game/script.rpy")

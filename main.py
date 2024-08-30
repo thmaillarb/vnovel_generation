@@ -457,3 +457,9 @@ if __name__ == '__main__':
     os.system(f'powershell -command "Get-Content .\\{game_name}\\base\\game\\script.rpy | Set-Content -Encoding utf8 .\\{game_name}\\base\\game\\script-tmp.rpy"')
     os.remove(f"{game_name}/base/game/script.rpy")
     os.rename(f"{game_name}/base/game/script-tmp.rpy", f"{game_name}/base/game/script.rpy")
+
+    print("Compiling game...")
+    os.chdir("renpy")
+    os.system(f".\\lib\\py3-windows-x86_64\\python.exe renpy.py ..\\{game_name}\\base compile && "
+              f".\\lib\\py3-windows-x86_64\\python.exe renpy.py launcher distribute ..\\{game_name}\\base "
+              f"--destination ..\\out\\{game_name} --package pc")

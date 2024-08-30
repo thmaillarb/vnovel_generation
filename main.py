@@ -300,7 +300,7 @@ if __name__ == '__main__':
         # Registering characters
         f.write("define me = Character('Me')\n")
         for i in range(len(characters)):
-            f.write(f"define c{i} = Character('{characters[i]}')\n")
+            f.write(f'define c{i} = Character("{characters[i]}")\n')
 
         f.write("label start:\n")
         f.write("    jump story0\n")

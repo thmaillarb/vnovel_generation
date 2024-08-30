@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+import yaml
 
 class Situation:
     """
     Used to represent a question and its answers, generally obtained from the YAML file.
     """
-    def __int__(self, question: str, correct_answer_index: int, *answers: str):
+    def __init__(self, question: str, correct_answer_index: int, answers: tuple):
         """
         Constructor of the Situation class.
 
@@ -41,7 +42,19 @@ class Situation:
         """str: the text of the correct answer"""
         return self._answers[self._correct_answer_index]
 
+
 if __name__ == '__main__':
     # reading questions
+    with open("questions.yaml", "r") as file:
+        questions_yaml = yaml.safe_load(file)
 
-    pass
+    situations = list()
+    for situation in questions_yaml['situations']:
+        question = situation["question"]
+        answers = tuple(situation["answers"])
+        correct_answer = situation["correct_answer"]
+        obj = Situation(question, correct_answer, answers)
+        print(obj.correct_answer)
+        situations.append(obj)
+
+

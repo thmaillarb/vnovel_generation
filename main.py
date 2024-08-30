@@ -268,6 +268,10 @@ if __name__ == '__main__':
                     model="gemma2:9b",
                     messages=[
                         {
+                            'role': 'system',
+                            'content': "Paragraphs must be no longer than 40 words."
+                        },
+                        {
                             'role': 'user',
                             'content': prompt
                         }
@@ -276,6 +280,7 @@ if __name__ == '__main__':
                         'top_p': 0.75
                     }
                 )
+                print(response["message"]["content"])
                 situation.parse(response["message"]["content"])
 
             # Generating transitions
@@ -294,6 +299,10 @@ if __name__ == '__main__':
                     model="llama3:8b",
                     messages=[
                         {
+                            'role': 'system',
+                            'content': 'Paragraphs must be no longer than 40 words.'
+                        },
+                        {
                             'role': 'user',
                             'content': prompt
                         }
@@ -304,7 +313,7 @@ if __name__ == '__main__':
                 )
 
                 transition = response["message"]["content"].encode("utf-8", "ignore").decode(
-                    "utf-8")
+                    "utf-8").replace("\"", "\\\"")
                 transitions.append(transition)
                 pass
             break
